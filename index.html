@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Плюшевая Удача — маленькая аркада с большим сердцем</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#16302a;--panel:#1c3a33;--line:#2c4f46;--cream:#f3ead8;--peach:#f2b48f;--muted:#9fb5ad}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--cream);font-family:Inter,sans-serif;overflow:hidden}
+#scene{position:fixed;inset:0}
+header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--line);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);z-index:5;pointer-events:none}
+header b{color:var(--cream);font-size:14px;letter-spacing:0;text-transform:none}
+.left{position:fixed;left:40px;top:22%;max-width:300px;z-index:5;pointer-events:none}
+.kicker{font-size:10px;letter-spacing:.2em;color:var(--peach);margin-bottom:12px}
+h1{font-family:'Playfair Display',serif;font-size:46px;line-height:1.05;font-weight:500}
+h1 i{color:var(--peach)}
+.left p{font-size:12px;color:var(--muted);margin:14px 0 24px;line-height:1.6}
+.step{display:flex;gap:12px;margin:10px 0;font-size:12px}
+.step span{font-family:'Playfair Display',serif;font-style:italic;color:var(--peach);font-size:16px}
+.step small{display:block;color:var(--muted);font-size:10px}
+.right{position:fixed;right:40px;top:22%;width:150px;z-index:5}
+.right .kicker{color:var(--muted)}
+#count{font-family:'Playfair Display',serif;font-size:48px}
+#count small{font-family:Inter;font-size:10px;color:var(--muted);margin-left:6px}
+#grid{display:grid;grid-template-columns:repeat(3,40px);gap:8px;margin:14px 0}
+#grid div{width:40px;height:40px;border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
+#msg{font-size:11px;color:var(--muted);min-height:30px}
+.bar{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:18px;z-index:5}
+.pad{display:grid;grid-template-columns:repeat(3,34px);gap:4px}
+.pad button{height:30px;border-radius:6px;border:1px solid var(--line);background:#24463e;color:var(--cream);font-size:14px;touch-action:none}
+.pad .e{visibility:hidden}
+.bar .t b{font-size:13px;display:block}.bar .t small{font-size:10px;color:var(--muted)}
+#drop{background:var(--peach);color:#3b2418;border:0;border-radius:10px;padding:14px 22px;font-weight:600;letter-spacing:.1em;font-size:12px;cursor:pointer}
+#drop:disabled{opacity:.5}
+.hint{position:fixed;bottom:8px;width:100%;text-align:center;font-size:9px;letter-spacing:.2em;color:var(--muted);z-index:5}
+/* Визитка */
+#intro{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1s,visibility 1s}
+#intro.hide{opacity:0;visibility:hidden}
+.logo{font-family:'Playfair Display',serif;font-size:64px;display:flex;gap:2px}
+.logo span{opacity:0;transform:translateY(40px);display:inline-block;animation:up .6s cubic-bezier(.2,.9,.3,1.3) forwards}
+.logo .p{color:var(--peach);font-style:italic}
+.sub{margin-top:18px;font-size:11px;letter-spacing:.35em;color:var(--muted);opacity:0;animation:fade 1s 1.6s forwards}
+.heart{font-size:40px;margin-bottom:14px;opacity:0;animation:pop .8s .1s forwards}
+.line{width:0;height:1px;background:var(--peach);margin-top:22px;animation:grow 1.2s 1.4s forwards}
+#start{margin-top:34px;opacity:0;animation:fade .8s 2.4s forwards;background:transparent;border:1px solid var(--peach);color:var(--peach);padding:12px 30px;border-radius:30px;letter-spacing:.2em;font-size:11px;cursor:pointer}
+@keyframes up{to{opacity:1;transform:none}}
+@keyframes fade{to{opacity:1}}
+@keyframes pop{0%{opacity:0;transform:scale(0) rotate(-30deg)}70%{transform:scale(1.3)}100%{opacity:1;transform:scale(1)}}
+@keyframes grow{to{width:220px}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:15}
+@media(max-width:900px){.left{left:16px;top:70px;max-width:60%}h1{font-size:28px}.left p,.step{display:none}.right{right:16px;top:70px;width:auto;text-align:right}#grid{display:none}#count{font-size:32px}.bar{width:94%;gap:10px}.bar .t{display:none}.logo{font-size:38px}header .c{display:none}}
+</style>
+</head>
+<body>
+<div id="intro">
+  <div class="heart">🧸</div>
+  <div class="logo" id="logo"></div>
+  <div class="line"></div>
+  <div class="sub">МАЛЕНЬКАЯ АРКАДА С БОЛЬШИМ СЕРДЦЕМ</div>
+  <button id="start">ИГРАТЬ</button>
+</div>
+<canvas id="confetti"></canvas>
+<div id="scene"></div>
+<header><b>🧸 Плюшевая Удача</b><span class="c">Маленькая аркада с большим сердцем</span><span>★ Играть всегда бесплатно</span></header>
+<div class="left">
+  <div class="kicker">КАРМАННОЕ МЕСТО РАДОСТИ</div>
+  <h1>Маленькие радости.<br><i>Большие победы.</i></h1>
+  <p>Автомат, полный новых друзей.<br>Одна маленькая клешня. Всё в твоих руках.</p>
+  <div class="step"><span>01</span><div>Найди любимца<small>Стрелки или WASD — движение</small></div></div>
+  <div class="step"><span>02</span><div>Сделай ход<small>Пробел — опустить клешню</small></div></div>
+  <div class="step"><span>03</span><div>Забери друга домой<small>Целься в центр — шанс выше</small></div></div>
+</div>
+<div class="right">
+  <div class="kicker">ТВОЯ КОЛЛЕКЦИЯ</div>
+  <div id="count">00<small>ДРУЗЕЙ</small></div>
+  <div id="grid"></div>
+  <div id="msg">Попыток: 0</div>
+</div>
+<div class="bar">
+  <div class="pad">
+    <button class="e"></button><button data-k="up">↑</button><button class="e"></button>
+    <button data-k="left">←</button><button data-k="down">↓</button><button data-k="right">→</button>
+  </div>
+  <div class="t"><b>Встречай нового друга.</b><small>WASD — движение · ПРОБЕЛ — захват</small></div>
+  <button id="drop">ОПУСТИТЬ ↓</button>
+</div>
+<div class="hint">↔ ПОТЯНИ, ЧТОБЫ ОСМОТРЕТЬСЯ · БЕЗ МОНЕТ И БЕЗ СПЕШКИ</div>
+
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// ---------- Визитка ----------
+const word='Плюшевая Удача';
+const logo=document.getElementById('logo');
+[...word].forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch===' '?'\u00a0':ch;if(i>8)s.className='p';s.style.animationDelay=(0.3+i*0.06)+'s';logo.appendChild(s)});
+document.getElementById('start').onclick=()=>{document.getElementById('intro').classList.add('hide');introCam=true};
+
+// ---------- Сцена ----------
+const el=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+el.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x16302a);scene.fog=new THREE.Fog(0x16302a,14,30);
+const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.1,100);
+camera.position.set(9,8,14);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.set(0,2.6,0);controls.enableDamping=true;controls.enablePan=false;
+controls.minDistance=7;controls.maxDistance=16;controls.maxPolarAngle=Math.PI/2.05;
+let introCam=false,introT=0;const camEnd=new THREE.Vector3(5,5.5,10);
+
+scene.add(new THREE.HemisphereLight(0xfff3e0,0x16302a,.9));
+const sun=new THREE.DirectionalLight(0xfff0dd,1.6);sun.position.set(5,10,6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-6,right:6,top:8,bottom:-4});scene.add(sun);
+const inner=new THREE.PointLight(0xffe2b8,8,6);inner.position.set(0,5,0);scene.add(inner);
+
+const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.6,...o});
+const cream=M(0xefe6d2),green=M(0x1f4d3e),wood=M(0xb07a4a,{roughness:.5}),brass=M(0xc9935a,{metalness:.8,roughness:.3}),steel=M(0xcfd4d6,{metalness:.9,roughness:.25});
+const box=(w,h,d,m,x,y,z,r=.06)=>{const g=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,r),m);g.position.set(x,y,z);g.castShadow=g.receiveShadow=true;scene.add(g);return g};
+
+// пол
+const floor=new THREE.Mesh(new THREE.CircleGeometry(20,48),M(0x13292a));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+// корпус
+box(3.6,1.4,3.2,green,0,.7,0);
+box(3.8,.25,3.4,cream,0,1.5,0);
+box(3.4,.15,3,M(0xd9cfb6),0,1.65,0);
+// стойки
+[[-1.7,-1.5],[1.7,-1.5],[-1.7,1.5],[1.7,1.5]].forEach(([x,z])=>box(.12,3.6,.12,brass,x,3.4,z,.04));
+// стекло
+const glass=new THREE.MeshPhysicalMaterial({color:0xcfe8e0,transparent:true,opacity:.12,roughness:.05,transmission:.6,side:THREE.DoubleSide,depthWrite:false});
+[[0,3.4,1.5,3.4,0],[0,3.4,-1.5,3.4,0],[1.7,3.4,0,3,Math.PI/2],[-1.7,3.4,0,3,Math.PI/2]].forEach(([x,y,z,w,r])=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(w,3.5),glass);p.position.set(x,y,z);p.rotation.y=r;scene.add(p)});
+// крыша и вывеска
+box(3.8,.7,3.4,cream,0,5.55,0);
+box(4.1,.18,3.7,wood,0,6,0);
+const cv=document.createElement('canvas');cv.width=1024;cv.height=200;const cx=cv.getContext('2d');
+cx.fillStyle='#1f4d3e';cx.fillRect(0,0,1024,200);cx.fillStyle='#f3ead8';cx.textAlign='center';
+cx.font='bold 78px Georgia';cx.fillText('ПЛЮШЕВАЯ УДАЧА',512,105);cx.font='28px Georgia';cx.fillText('МАЛЕНЬКАЯ АРКАДА С БОЛЬШИМ СЕРДЦЕМ',512,160);
+cx.font='bold 80px Georgia';cx.fillText('+',50,110);cx.fillText('+',974,110);
+const sign=new THREE.Mesh(new THREE.PlaneGeometry(3.5,.68),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv)}));sign.position.set(0,5.55,1.711);scene.add(sign);
+// огоньки
+const bulbs=[];for(let i=0;i<16;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.04),new THREE.MeshBasicMaterial({color:0xfff2c8}));b.position.set(-1.6+i*.213,5.1,1.62);scene.add(b);bulbs.push(b)}
+// пульт
+box(3.8,.3,.9,cream,0,1.55,2.1);
+const stick=new THREE.Group();stick.position.set(-1,1.75,2.1);scene.add(stick);
+const sh=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.4),steel);sh.position.y=.2;stick.add(sh);
+const ball=new THREE.Mesh(new THREE.SphereGeometry(.13,24,16),M(0xd9604a,{roughness:.3}));ball.position.y=.42;stick.add(ball);
+const btn=new THREE.Mesh(new THREE.CylinderGeometry(.18,.2,.1,32),M(0xf2b48f,{roughness:.3}));btn.position.set(1,1.75,2.1);scene.add(btn);
+// лоток выигрыша
+box(.9,.08,.9,M(0x2a5a4a),1.2,1.75,1.1);
+const chuteWall=new THREE.Mesh(new THREE.BoxGeometry(.05,.8,.9),glass);chuteWall.position.set(.73,2.1,1.1);scene.add(chuteWall);
+box(.7,.4,.15,M(0x0d1f1a),1.2,.6,1.62); // окно выдачи
+
+// ---------- Игрушки ----------
+const pastel=[0xf6c6c8,0xbfe3d0,0xc8d6f5,0xf6e0a8,0xe2cdf2,0xf9d2b4,0xd4ecf7,0xfff0e0];
+const animals=['🧸','🐰','🐱','🐻','🐶','🐼','🐥','🦊'];
+const toys=[];
+function makeToy(i){
+  const g=new THREE.Group();const m=M(pastel[i%8],{roughness:.95});const dark=M(0x3a2a24);
+  const body=new THREE.Mesh(new THREE.SphereGeometry(.26,20,16),m);body.scale.set(1,.95,.9);g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.21,20,16),m);head.position.y=.3;g.add(head);
+  const t=i%3;
+  if(t===1){[-.08,.08].forEach(x=>{const e=new THREE.Mesh(new THREE.CapsuleGeometry(.04,.18,4,8),m);e.position.set(x,.56,0);g.add(e)})}
+  else{[-.14,.14].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),m);e.position.set(x,.46,0);g.add(e)})}
+  [-.07,.07].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.022),dark);e.position.set(x,.33,.19);g.add(e)});
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(.05,12,10),M(0xfff6ea));nose.position.set(0,.27,.18);nose.scale.z=.6;g.add(nose);
+  [-.2,.2].forEach(x=>{const a=new THREE.Mesh(new THREE.SphereGeometry(.08,10,8),m);a.position.set(x,.02,.1);g.add(a)});
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true});
+  return g;
+}
+for(let i=0;i<26;i++){
+  const t=makeToy(i);let x,z;
+  do{x=(Math.random()-.5)*2.9;z=(Math.random()-.5)*2.5}while(x>.6&&z>.55);
+  t.position.set(x,1.98+Math.random()*.25,z);t.rotation.set((Math.random()-.5)*.6,Math.random()*6.28,(Math.random()-.5)*.6);
+  t.userData={kind:i%8};scene.add(t);toys.push(t);
+}
+
+// ---------- Клешня ----------
+const rail=box(3.2,.08,.12,steel,0,4.95,0,.02);
+const claw=new THREE.Group();scene.add(claw);
+const cable=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,1),M(0x333333));claw.add(cable);
+const hub=new THREE.Mesh(new THREE.CylinderGeometry(.14,.18,.22,24),steel);claw.add(hub);
+const fingers=[];
+for(let i=0;i<3;i++){
+  const pivot=new THREE.Group();pivot.rotation.y=i*Math.PI*2/3;hub.add(pivot);
+  const arm=new THREE.Group();arm.position.set(0,-.1,.12);pivot.add(arm);
+  const a=new THREE.Mesh(new THREE.BoxGeometry(.04,.32,.04),steel);a.position.y=-.16;arm.add(a);
+  const tip=new THREE.Mesh(new THREE.BoxGeometry(.04,.16,.04),steel);tip.position.set(0,-.34,-.05);tip.rotation.x=.6;arm.add(tip);
+  fingers.push(arm);
+}
+const S={x:0,z:0,y:4.6,open:.7,state:'idle',held:null,tries:0,wins:[]};
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'){e.preventDefault();drop()}});
+addEventListener('keyup',e=>keys[e.code]=false);
+document.querySelectorAll('.pad button[data-k]').forEach(b=>{
+  const k=b.dataset.k;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false));
+});
+const dropBtn=document.getElementById('drop');dropBtn.onclick=drop;
+function drop(){if(S.state==='idle'){S.state='down';dropBtn.disabled=true;S.tries++;msg('Попыток: '+S.tries)}}
+const msgEl=document.getElementById('msg');const msg=t=>msgEl.textContent=t;
+const grid=document.getElementById('grid');
+function renderGrid(){grid.innerHTML='';for(let i=0;i<6;i++){const d=document.createElement('div');d.textContent=S.wins[i]!==undefined?animals[S.wins[i]]:'+';if(S.wins[i]!==undefined)d.style.borderColor='#f2b48f';grid.appendChild(d)}
+  document.getElementById('count').innerHTML=String(S.wins.length).padStart(2,'0')+'<small>ДРУЗЕЙ</small>'}
+renderGrid();
+const names=['Мишка','Зайка','Котик','Медвежонок','Щенок','Панда','Цыплёнок','Лисёнок'];
+
+// ---------- Конфетти ----------
+const cc=document.getElementById('confetti'),cctx=cc.getContext('2d');let parts=[];
+function confetti(){for(let i=0;i<140;i++)parts.push({x:innerWidth/2,y:innerHeight/2,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,c:['#f2b48f','#f3ead8','#bfe3d0','#f6c6c8'][i%4],r:Math.random()*6.28,l:120})}
+function drawConf(){cc.width=innerWidth;cc.height=innerHeight;parts=parts.filter(p=>p.l-->0);parts.forEach(p=>{p.vy+=.4;p.x+=p.vx;p.y+=p.vy;p.r+=.2;cctx.save();cctx.translate(p.x,p.y);cctx.rotate(p.r);cctx.fillStyle=p.c;cctx.fillRect(-4,-2,8,4);cctx.restore()})}
+
+// ---------- Цикл ----------
+const clock=new THREE.Clock();
+function loop(){
+  const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
+  if(introCam&&introT<1){introT+=dt*.5;camera.position.lerp(camEnd,.04)}
+  if(S.state==='idle'){
+    const sp=1.6*dt;let mx=0,mz=0;
+    if(keys.ArrowLeft||keys.KeyA||keys.left)mx=-1;if(keys.ArrowRight||keys.KeyD||keys.right)mx=1;
+    if(keys.ArrowUp||keys.KeyW||keys.up)mz=-1;if(keys.ArrowDown||keys.KeyS||keys.down)mz=1;
+    S.x=THREE.MathUtils.clamp(S.x+mx*sp,-1.4,1.4);S.z=THREE.MathUtils.clamp(S.z+mz*sp,-1.25,1.25);
+    stick.rotation.set(mz*.35,0,-mx*.35);
+  }else if(S.state==='down'){
+    S.y-=1.8*dt;
+    const floorY=Math.max(2.35,...toys.filter(o=>Math.hypot(o.position.x-S.x,o.position.z-S.z)<.35).map(o=>o.position.y+.75));
+    btn.position.y=1.7;
+    if(S.y<=floorY){S.y=floorY;S.state='close';S.timer=0}
+  }else if(S.state==='close'){
+    S.open=Math.max(0,S.open-dt*1.5);S.timer+=dt;
+    if(S.timer>.6){
+      let best=null,bd=.45;toys.forEach(o=>{const d=Math.hypot(o.position.x-S.x,o.position.z-S.z);if(d<bd&&o.position.y>S.y-1.1){bd=d;best=o}});
+      if(best&&Math.random()<1-bd*1.3){S.held=best;best.userData.off=best.position.clone().sub(new THREE.Vector3(S.x,S.y,S.z))}
+      S.state='up';btn.position.y=1.75;
+    }
+  }else if(S.state==='up'){
+    S.y+=1.5*dt;
+    if(S.held&&S.y>3.5&&Math.random()<dt*.25){msg('Ой, выскользнул! Попробуй ещё');S.held.userData.fall=true;S.held=null}
+    if(S.y>=4.6){S.y=4.6;S.state=S.held?'home':'reset';if(!S.held&&!msgEl.textContent.startsWith('Ой'))msg('Мимо! Попыток: '+S.tries)}
+  }else if(S.state==='home'){
+    const dx=1.2-S.x,dz=1.1-S.z,d=Math.hypot(dx,dz);
+    if(d>.02){S.x+=dx/d*Math.min(d,1.5*dt);S.z+=dz/d*Math.min(d,1.5*dt)}else{S.state='release';S.timer=0}
+  }else if(S.state==='release'){
+    S.open=Math.min(.7,S.open+dt*1.5);S.timer+=dt;
+    if(S.timer>.3&&S.held){const o=S.held;S.held=null;o.userData.fall=true;o.userData.win=true}
+    if(S.timer>1)S.state='reset';
+  }else if(S.state==='reset'){S.open=Math.min(.7,S.open+dt*1.5);if(S.open>=.7){S.state='idle';dropBtn.disabled=false}}
+  if(S.held){S.held.position.set(S.x,S.y,S.z).add(S.held.userData.off.clone().setX(0).setZ(0)).add(new THREE.Vector3(0,-.7,0))}
+  toys.forEach(o=>{if(o.userData.fall){o.userData.v=(o.userData.v||0)+9.8*dt;o.position.y-=o.userData.v*dt;
+    const ground=o.userData.win?1.0:2.0;
+    if(o.position.y<=ground){o.position.y=ground;o.userData.fall=false;o.userData.v=0;
+      if(o.userData.win){scene.remove(o);toys.splice(toys.indexOf(o),1);S.wins.push(o.userData.kind);renderGrid();msg(names[o.userData.kind]+' нашёл новый дом! Попыток: '+S.tries+' · друзей: '+S.wins.length);confetti()}}}});
+  claw.position.set(S.x,S.y,S.z);
+  cable.scale.y=4.95-S.y;cable.position.y=(4.95-S.y)/2;
+  fingers.forEach(f=>f.rotation.x=-S.open*.8+.15);
+  rail.position.z=S.z;
+  bulbs.forEach((b,i)=>b.material.color.setHSL(.1,.9,.6+.3*Math.sin(t*4+i)));
+  controls.update();renderer.render(scene,camera);
+  if(parts.length)drawConf();
+  requestAnimationFrame(loop);
+}
+loop();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>
