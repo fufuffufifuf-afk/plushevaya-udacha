@@ -35,7 +35,6 @@ h1 i{color:var(--peach)}
 #drop{background:var(--peach);color:#3b2418;border:0;border-radius:10px;padding:14px 22px;font-weight:600;letter-spacing:.1em;font-size:12px;cursor:pointer}
 #drop:disabled{opacity:.5}
 .hint{position:fixed;bottom:8px;width:100%;text-align:center;font-size:9px;letter-spacing:.2em;color:var(--muted);z-index:5}
-/* Визитка */
 #intro{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1s,visibility 1s}
 #intro.hide{opacity:0;visibility:hidden}
 .logo{font-family:'Playfair Display',serif;font-size:64px;display:flex;gap:2px}
@@ -93,14 +92,14 @@ h1 i{color:var(--peach)}
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {clone as skClone} from 'three/addons/utils/SkeletonUtils.js';
 
-// ---------- Визитка ----------
 const word='Плюшевая Удача';
 const logo=document.getElementById('logo');
 [...word].forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch===' '?'\u00a0':ch;if(i>8)s.className='p';s.style.animationDelay=(0.3+i*0.06)+'s';logo.appendChild(s)});
 document.getElementById('start').onclick=()=>{document.getElementById('intro').classList.add('hide');introCam=true};
 
-// ---------- Сцена ----------
 const el=document.getElementById('scene');
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);
@@ -124,18 +123,13 @@ const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.6,...o});
 const cream=M(0xefe6d2),green=M(0x1f4d3e),wood=M(0xb07a4a,{roughness:.5}),brass=M(0xc9935a,{metalness:.8,roughness:.3}),steel=M(0xcfd4d6,{metalness:.9,roughness:.25});
 const box=(w,h,d,m,x,y,z,r=.06)=>{const g=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,r),m);g.position.set(x,y,z);g.castShadow=g.receiveShadow=true;scene.add(g);return g};
 
-// пол
 const floor=new THREE.Mesh(new THREE.CircleGeometry(20,48),M(0x13292a));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
-// корпус
 box(3.6,1.4,3.2,green,0,.7,0);
 box(3.8,.25,3.4,cream,0,1.5,0);
 box(3.4,.15,3,M(0xd9cfb6),0,1.65,0);
-// стойки
 [[-1.7,-1.5],[1.7,-1.5],[-1.7,1.5],[1.7,1.5]].forEach(([x,z])=>box(.12,3.6,.12,brass,x,3.4,z,.04));
-// стекло
 const glass=new THREE.MeshPhysicalMaterial({color:0xcfe8e0,transparent:true,opacity:.12,roughness:.05,transmission:.6,side:THREE.DoubleSide,depthWrite:false});
 [[0,3.4,1.5,3.4,0],[0,3.4,-1.5,3.4,0],[1.7,3.4,0,3,Math.PI/2],[-1.7,3.4,0,3,Math.PI/2]].forEach(([x,y,z,w,r])=>{const p=new THREE.Mesh(new THREE.PlaneGeometry(w,3.5),glass);p.position.set(x,y,z);p.rotation.y=r;scene.add(p)});
-// крыша и вывеска
 box(3.8,.7,3.4,cream,0,5.55,0);
 box(4.1,.18,3.7,wood,0,6,0);
 const cv=document.createElement('canvas');cv.width=1024;cv.height=200;const cx=cv.getContext('2d');
@@ -143,44 +137,46 @@ cx.fillStyle='#1f4d3e';cx.fillRect(0,0,1024,200);cx.fillStyle='#f3ead8';cx.textA
 cx.font='bold 78px Georgia';cx.fillText('ПЛЮШЕВАЯ УДАЧА',512,105);cx.font='28px Georgia';cx.fillText('МАЛЕНЬКАЯ АРКАДА С БОЛЬШИМ СЕРДЦЕМ',512,160);
 cx.font='bold 80px Georgia';cx.fillText('+',50,110);cx.fillText('+',974,110);
 const sign=new THREE.Mesh(new THREE.PlaneGeometry(3.5,.68),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv)}));sign.position.set(0,5.55,1.711);scene.add(sign);
-// огоньки
 const bulbs=[];for(let i=0;i<16;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.04),new THREE.MeshBasicMaterial({color:0xfff2c8}));b.position.set(-1.6+i*.213,5.1,1.62);scene.add(b);bulbs.push(b)}
-// пульт
 box(3.8,.3,.9,cream,0,1.55,2.1);
 const stick=new THREE.Group();stick.position.set(-1,1.75,2.1);scene.add(stick);
 const sh=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.4),steel);sh.position.y=.2;stick.add(sh);
 const ball=new THREE.Mesh(new THREE.SphereGeometry(.13,24,16),M(0xd9604a,{roughness:.3}));ball.position.y=.42;stick.add(ball);
 const btn=new THREE.Mesh(new THREE.CylinderGeometry(.18,.2,.1,32),M(0xf2b48f,{roughness:.3}));btn.position.set(1,1.75,2.1);scene.add(btn);
-// лоток выигрыша
 box(.9,.08,.9,M(0x2a5a4a),1.2,1.75,1.1);
 const chuteWall=new THREE.Mesh(new THREE.BoxGeometry(.05,.8,.9),glass);chuteWall.position.set(.73,2.1,1.1);scene.add(chuteWall);
-box(.7,.4,.15,M(0x0d1f1a),1.2,.6,1.62); // окно выдачи
+box(.7,.4,.15,M(0x0d1f1a),1.2,.6,1.62);
 
-// ---------- Игрушки ----------
 const pastel=[0xf6c6c8,0xbfe3d0,0xc8d6f5,0xf6e0a8,0xe2cdf2,0xf9d2b4,0xd4ecf7,0xfff0e0];
-const animals=['🧸','🐰','🐱','🐻','🐶','🐼','🐥','🦊'];
+const animals=['1','2','3'];
 const toys=[];
 function makeToy(i){
-  const g=new THREE.Group();const m=M(pastel[i%8],{roughness:.95});const dark=M(0x3a2a24);
-  const body=new THREE.Mesh(new THREE.SphereGeometry(.26,20,16),m);body.scale.set(1,.95,.9);g.add(body);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.21,20,16),m);head.position.y=.3;g.add(head);
-  const t=i%3;
-  if(t===1){[-.08,.08].forEach(x=>{const e=new THREE.Mesh(new THREE.CapsuleGeometry(.04,.18,4,8),m);e.position.set(x,.56,0);g.add(e)})}
-  else{[-.14,.14].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),m);e.position.set(x,.46,0);g.add(e)})}
-  [-.07,.07].forEach(x=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.022),dark);e.position.set(x,.33,.19);g.add(e)});
-  const nose=new THREE.Mesh(new THREE.SphereGeometry(.05,12,10),M(0xfff6ea));nose.position.set(0,.27,.18);nose.scale.z=.6;g.add(nose);
-  [-.2,.2].forEach(x=>{const a=new THREE.Mesh(new THREE.SphereGeometry(.08,10,8),m);a.position.set(x,.02,.1);g.add(a)});
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true});
+  const g=new THREE.Group();const m=M(pastel[i%8],{roughness:.95});
+  const body=new THREE.Mesh(new THREE.SphereGeometry(.26,20,16),m);g.add(body);
   return g;
 }
 for(let i=0;i<26;i++){
   const t=makeToy(i);let x,z;
   do{x=(Math.random()-.5)*2.9;z=(Math.random()-.5)*2.5}while(x>.6&&z>.55);
   t.position.set(x,1.98+Math.random()*.25,z);t.rotation.set((Math.random()-.5)*.6,Math.random()*6.28,(Math.random()-.5)*.6);
-  t.userData={kind:i%8};scene.add(t);toys.push(t);
+  t.userData={kind:i%3};scene.add(t);toys.push(t);
 }
+const loader=new GLTFLoader();const mixers=[];
+function norm(obj,size){
+  const b=new THREE.Box3().setFromObject(obj),s=b.getSize(new THREE.Vector3());
+  obj.scale.multiplyScalar(size/Math.max(s.x,s.y,s.z));
+  const b2=new THREE.Box3().setFromObject(obj),c=b2.getCenter(new THREE.Vector3());
+  obj.position.sub(c);obj.position.y+=(b2.max.y-b2.min.y)/2-.26;
+  obj.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});return obj;
+}
+['quaternius_cc0-alien-634.glb','quaternius_cc0-alien-635.glb','quaternius_cc0-mushroom-1184.glb'].forEach((f,k)=>
+  loader.load(f,g=>{toys.forEach(t=>{if(t.userData.kind===k){const m=norm(skClone(g.scene),.62);t.clear();t.add(m)}})},undefined,e=>console.warn('Не загрузилась',f,e)));
+const hero=new THREE.Group();hero.position.set(-3.4,4.2,.3);scene.add(hero);
+loader.load('pixellabs-grim-reaper-3d-3011.glb',g=>{
+  const m=norm(g.scene,2);m.position.y+=.26;hero.add(m);
+  if(g.animations.length){const mx=new THREE.AnimationMixer(g.scene);mx.clipAction(g.animations[0]).play();mixers.push(mx)}
+},undefined,e=>console.warn('Персонаж не загрузился',e));
 
-// ---------- Клешня ----------
 const rail=box(3.2,.08,.12,steel,0,4.95,0,.02);
 const claw=new THREE.Group();scene.add(claw);
 const cable=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,1),M(0x333333));claw.add(cable);
@@ -208,14 +204,12 @@ const grid=document.getElementById('grid');
 function renderGrid(){grid.innerHTML='';for(let i=0;i<6;i++){const d=document.createElement('div');d.textContent=S.wins[i]!==undefined?animals[S.wins[i]]:'+';if(S.wins[i]!==undefined)d.style.borderColor='#f2b48f';grid.appendChild(d)}
   document.getElementById('count').innerHTML=String(S.wins.length).padStart(2,'0')+'<small>ДРУЗЕЙ</small>'}
 renderGrid();
-const names=['Мишка','Зайка','Котик','Медвежонок','Щенок','Панда','Цыплёнок','Лисёнок'];
+const names=['Игрушка1','Игрушка2','Игрушка3'];
 
-// ---------- Конфетти ----------
 const cc=document.getElementById('confetti'),cctx=cc.getContext('2d');let parts=[];
 function confetti(){for(let i=0;i<140;i++)parts.push({x:innerWidth/2,y:innerHeight/2,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,c:['#f2b48f','#f3ead8','#bfe3d0','#f6c6c8'][i%4],r:Math.random()*6.28,l:120})}
 function drawConf(){cc.width=innerWidth;cc.height=innerHeight;parts=parts.filter(p=>p.l-->0);parts.forEach(p=>{p.vy+=.4;p.x+=p.vx;p.y+=p.vy;p.r+=.2;cctx.save();cctx.translate(p.x,p.y);cctx.rotate(p.r);cctx.fillStyle=p.c;cctx.fillRect(-4,-2,8,4);cctx.restore()})}
 
-// ---------- Цикл ----------
 const clock=new THREE.Clock();
 function loop(){
   const dt=Math.min(clock.getDelta(),.05),t=clock.elapsedTime;
@@ -240,7 +234,7 @@ function loop(){
     }
   }else if(S.state==='up'){
     S.y+=1.5*dt;
-    if(S.held&&S.y>3.5&&Math.random()<dt*.25){msg('Ой, выскользнул! Попробуй ещё');S.held.userData.fall=true;S.held=null}
+    if(S.held&&S.y>3.5&&Math.random()<dt*.25){msg('Ой, выскользнула! Попробуй ещё');S.held.userData.fall=true;S.held=null}
     if(S.y>=4.6){S.y=4.6;S.state=S.held?'home':'reset';if(!S.held&&!msgEl.textContent.startsWith('Ой'))msg('Мимо! Попыток: '+S.tries)}
   }else if(S.state==='home'){
     const dx=1.2-S.x,dz=1.1-S.z,d=Math.hypot(dx,dz);
@@ -250,11 +244,14 @@ function loop(){
     if(S.timer>.3&&S.held){const o=S.held;S.held=null;o.userData.fall=true;o.userData.win=true}
     if(S.timer>1)S.state='reset';
   }else if(S.state==='reset'){S.open=Math.min(.7,S.open+dt*1.5);if(S.open>=.7){S.state='idle';dropBtn.disabled=false}}
-  if(S.held){S.held.position.set(S.x,S.y,S.z).add(S.held.userData.off.clone().setX(0).setZ(0)).add(new THREE.Vector3(0,-.7,0))}
+  if(S.held){S.held.position.set(S.x,S.y-.7,S.z)}
   toys.forEach(o=>{if(o.userData.fall){o.userData.v=(o.userData.v||0)+9.8*dt;o.position.y-=o.userData.v*dt;
     const ground=o.userData.win?1.0:2.0;
     if(o.position.y<=ground){o.position.y=ground;o.userData.fall=false;o.userData.v=0;
-      if(o.userData.win){scene.remove(o);toys.splice(toys.indexOf(o),1);S.wins.push(o.userData.kind);renderGrid();msg(names[o.userData.kind]+' нашёл новый дом! Попыток: '+S.tries+' · друзей: '+S.wins.length);confetti()}}}});
+      if(o.userData.win){scene.remove(o);toys.splice(toys.indexOf(o),1);S.wins.push(o.userData.kind);renderGrid();msg(names[o.userData.kind]+' теперь твоя! Попыток: '+S.tries+' · друзей: '+S.wins.length);confetti()}}}});
+  mixers.forEach(m=>m.update(dt));
+  hero.position.y=4.2+Math.sin(t*1.3)*.35;hero.position.x=-3.4+Math.sin(t*.5)*.4;
+  hero.lookAt(claw.position.x,hero.position.y-.3,claw.position.z+1);
   claw.position.set(S.x,S.y,S.z);
   cable.scale.y=4.95-S.y;cable.position.y=(4.95-S.y)/2;
   fingers.forEach(f=>f.rotation.x=-S.open*.8+.15);
